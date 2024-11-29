@@ -14,6 +14,7 @@
     <div class="chat-section">
       <div class="chat-list" ref="chatList">
         <div class="chat-message" v-for="(msg, index) in chatMessages" :key="index">
+          <div v-if="msg.time">{{ Date(msg.time).toLocaleString() }}</div>
           <div v-if="msg.type === 'text'">{{ msg.content }}</div>
           <img v-if="msg.type === 'image'" :src="msg.content" alt="聊天图片" />
         </div>
@@ -30,7 +31,23 @@
 </template>
 
 <script>
+import { ref, onMounted } from 'vue';
+import { getMessages, saveMessage } from '../services/api';
+
+
 export default {
+    setup() {
+    let chatMessages = ref();
+
+    onMounted(async () => {
+      const res = await getMessages();
+      chatMessages.value = res.data;
+    });
+
+    return {
+      chatMessages
+    };
+  },
   data() {
     return {
       qaList: [
@@ -38,19 +55,35 @@ export default {
         { question: '如何使用？', answer: '输入消息并点击发送按钮。' },
         // 添加更多 Q&A
       ],
-      chatMessages: [],
+      // chatMessages: [],
       inputMessage: ''
     };
   },
   methods: {
+    formatTimestamp(timestamp) {
+      const timestampInt = parseInt(timestamp)
+      const date = new Date(timestampInt);
+      return date.toLocaleString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit', 
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+      });
+    },
     sendMessage() {
       if (this.inputMessage.trim()) {
-        this.chatMessages.push({ type: 'text', content: this.inputMessage });
+        const message = {time: Date.now(), type: 'text', content: this.inputMessage}
+        this.chatMessages.push(message);
+        saveMessage(message);
         this.inputMessage = '';
         this.scrollToBottom();
       }
     },
     sendEncryptedMessage() {
+      console.log(this.chatMessages)
       // 这里可以添加加密逻辑
       if (this.inputMessage.trim()) {
         this.chatMessages.push({ type: 'text', content: `加密: ${this.inputMessage}` });
@@ -72,6 +105,7 @@ export default {
 .chat-page {
   display: flex;
   height: 100vh;
+  flex-direction: row; /* 默认横向布局 */
 }
 
 .qa-section {
@@ -149,5 +183,40 @@ button {
 
 button:hover {
   background: #0056b3;
+}
+
+/* 媒体查询 */
+@media (max-width: 768px) {
+  .chat-page {
+    flex-direction: column; /* 小屏幕上垂直布局 */
+  }
+
+  .qa-section {
+    width: 100%; /* 左侧部分占满宽度 */
+    border-right: none; /* 移除右边框 */
+    border-bottom: 1px solid #ccc; /* 添加下边框 */
+  }
+
+  .chat-section {
+    width: 100%; /* 右侧部分占满宽度 */
+  }
+
+  .input-area {
+    flex-direction: column; /* 输入区域垂直排列 */
+  }
+
+  textarea {
+    margin-right: 0; /* 移除右边距 */
+    margin-bottom: 10px; /* 添加下边距 */
+  }
+
+  .button-group {
+    flex-direction: row; /* 按钮横向排列 */
+  }
+
+  button {
+    margin-bottom: 0; /* 移除按钮之间的下边距 */
+    margin-right: 10px; /* 添加右边距 */
+  }
 }
 </style>
