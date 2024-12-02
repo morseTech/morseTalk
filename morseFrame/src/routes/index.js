@@ -8,43 +8,62 @@ const path = require('path');
 
 // 获取所有消息的GET路由
 router.get('/all', async (ctx) => {
-    const dataPath = path.join(__dirname, '../data.json');
-    const data = await fs.readFile(dataPath, 'utf8');
-    ctx.body = JSON.parse(data);
+    const result = await ctx.requestMaster('ALL');
+    if (result) {
+        ctx.success(result.data);
+    } else {
+        ctx.error('获取数据失败');
+    }
 });
 
 // 保存消息的POST路由
 router.post('/post', async (ctx) => {
     try {
         const message = ctx.request.body;
-        const dataPath = path.join(__dirname, '../data.json');
-        
-        // 读取现有数据
-        let data = [];
-        try {
-            const fileContent = await fs.readFile(dataPath, 'utf8');
-            data = JSON.parse(fileContent);
-        } catch (err) {
-            // 如果文件不存在或为空,使用空数组
-        }
-        // 添加新消息
-        data.data.push(message);
+        console.log(message)
+        const result = await ctx.requestMaster('SET', new Date().getTime(), message);
 
-        // 写入文件
-        await fs.writeFile(dataPath, JSON.stringify(data, null, 2));
-
-        ctx.body = {
+        ctx.success({
             success: true,
             message: '消息已保存'
-        };
+        });
     } catch (err) {
       console.log(err)
-        ctx.status = 500;
-        ctx.body = {
-            success: false,
-            error: '保存消息失败'
-        };
+        ctx.error('保存消息失败');
     }
+});
+
+router.get('/', async (ctx) => {
+    ctx.body = `i'm a worker Pid ${process.pid}`;
+});
+
+router.get('/data/:key', async (ctx) => {
+  console.log(ctx.params.key)
+  const result = await ctx.requestMaster('GET', ctx.params.key);
+      if (result) {
+        ctx.success(result.data);
+    } else {
+        ctx.error('获取数据失败');
+    }
+});
+
+router.post('/data', async (ctx) => {
+  const { key, value } = ctx.request.body;
+  const result = await ctx.requestMaster('SET', key, value);
+  if (result.success) {
+    ctx.success({ success: true });
+} else {
+    ctx.error('设置数据失败');
+}
+});
+
+router.delete('/data/:key', async (ctx) => {
+  const result = await ctx.requestMaster('DELETE', ctx.params.key);
+  if (result.success) {
+    ctx.success({ success: true });
+} else {
+    ctx.error('删除数据失败');
+}
 });
 
 

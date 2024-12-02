@@ -14,7 +14,7 @@
     <div class="chat-section">
       <div class="chat-list" ref="chatList">
         <div class="chat-message" v-for="(msg, index) in chatMessages" :key="index">
-          <div v-if="msg.time">{{ Date(msg.time).toLocaleString() }}</div>
+          <div v-if="msg.time">{{ localTime(msg.time) }}</div>
           <div v-if="msg.type === 'text'">{{ msg.content }}</div>
           <img v-if="msg.type === 'image'" :src="msg.content" alt="聊天图片" />
         </div>
@@ -60,23 +60,19 @@ export default {
     };
   },
   methods: {
-    formatTimestamp(timestamp) {
+    localTime(timestamp) {
       const timestampInt = parseInt(timestamp)
       const date = new Date(timestampInt);
-      return date.toLocaleString('zh-CN', {
-        year: 'numeric',
-        month: '2-digit', 
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
+      return date.toLocaleString(navigator.language, {
+        dateStyle: 'short',
+        timeStyle: 'short',
         hour12: false
       });
     },
     sendMessage() {
       if (this.inputMessage.trim()) {
-        const message = {time: Date.now(), type: 'text', content: this.inputMessage}
-        this.chatMessages.push(message);
+        const message = {time: new Date().getTime(), type: 'text', content: this.inputMessage}
+        // this.chatMessages.push(message);
         saveMessage(message);
         this.inputMessage = '';
         this.scrollToBottom();
